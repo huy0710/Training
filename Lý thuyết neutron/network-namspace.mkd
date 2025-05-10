@@ -4,13 +4,35 @@
 - Network namespace được sử dụng rộng rãi OpenStack, docker, podman, cri-o....
 ## 1.2 Một số thao tác quản lý làm việc với linux network namespace
 - Thực hiện tạo 2 network namspace là `red` và `green`, tạo 2 `veth` để kết nối từ môi trường của 2 namespace đến OpenVswitch bridge và assign IP cho 2 interface của 2 namespace và thực hiện `ping`
-
- ```
- ip netns add red
- ip netns add green
- ip netns list
- ls -l /var/run/netns
- ```
- Thực hiện tạo 2 network namespace
  
- ![alt text](image/network_namespace1.png)
+ + Thực hiện tạo 2 namespace
+   ```
+   ip netns add red
+   ip netns add green
+   ip netns list
+   ls -l /var/run/netns
+   ```
+  Thực hiện tạo 2 network namespace
+
+  ![alt text](image/network_namespace1.png)
+
+ + Câu lệnh thao tác với namespace 
+   ```
+   ip netns exec <namespace> <command>
+   ```
+   Ví dụ chạy lệnh `ip a` trong ở namespace `red`
+
+   ![alt text](image/network_namespace2.png)
+
+   Để sử dụng các câu lệnh với namespace ta sử dụng command bash `ip netns exec <namespace_name> bash`
+
+   ![alt text](image/network_namespace3.png)
+
+ + Thực hiện tạo OVS brigde để kết nối 2 namespace với nhau
+   ```
+     ovs-vsctl add-br OVS1
+     ovs-vsctl list-br
+     ovs-vsctl show
+   ```
+   ![alt text](image/network_namespace4.png)
+
