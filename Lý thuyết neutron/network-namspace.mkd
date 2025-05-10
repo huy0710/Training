@@ -1,0 +1,16 @@
+# Tìm hiểu về network namespace
+## 1.1 Network namespace là gì?
+- Network namespace là một tính năng của kernel cho phép tạo ra một môi trường mạng riêng biệt, ở đó có các thành phần mạng riêng biệt như: interfaces, routing tables, forwarding rules....
+- Network namespace được sử dụng rộng rãi OpenStack, docker, podman, cri-o....
+## 1.2 Một số thao tác quản lý làm việc với linux network namespace
+- Thực hiện tạo 2 network namspace là `red` và `green`, tạo 2 `veth` để kết nối từ môi trường của 2 namespace đến OpenVswitch bridge và assign IP cho 2 interface của 2 namespace và thực hiện `ping`
+
+ ```
+ ip netns add red
+ ip netns add green
+ ip netns list
+ ls -l /var/run/netns
+ ```
+ Thực hiện tạo 2 network namespace
+ 
+ ![alt text](image/network_namespace1.png)
