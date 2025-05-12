@@ -3,7 +3,9 @@
 - Network namespace là một tính năng của kernel cho phép tạo ra một môi trường mạng riêng biệt, ở đó có các thành phần mạng riêng biệt như: interfaces, routing tables, forwarding rules....
 - Network namespace được sử dụng rộng rãi OpenStack, docker, podman, cri-o....
 ## 1.2 Một số thao tác quản lý làm việc với linux network namespace
-- Thực hiện tạo 2 network namspace là `red` và `green`, tạo 2 `veth` để kết nối từ môi trường của 2 namespace đến OpenVswitch bridge và assign IP cho 2 interface của 2 namespace và thực hiện `ping`
+### 1.2.1 Kết nối 2 namespace dùng OVS
+
+ + Thực hiện tạo 2 network namspace là `red` và `green`, tạo 2 `veth` để kết nối từ môi trường của 2 namespace đến OpenVswitch bridge và assign IP cho 2 interface của 2 namespace và thực hiện `ping`
 
  ![alt text](image/network_namespace10.png)  
 
@@ -78,7 +80,7 @@
 
    ![alt text](image/network_namespace9.png)
 
-- Thực hiện tạo kết nối 2 namespace với nhau dùng 1 đường `VETH`
+# 1.2.2 Thực hiện tạo kết nối 2 namespace với nhau dùng 1 đường `VETH`
 
  + Thực hiện tạo 2 namespace:
   ```
@@ -112,7 +114,7 @@
 
   ![alt text](image/network_namespace11.png)
 
-- Sử dụng linux brigde để kết nối 2 namespace với nhau: 
+# 1.2.3 Sử dụng linux brigde để kết nối 2 namespace với nhau: 
   
   ![alt text](image/network_namespace12.png)
 
@@ -155,7 +157,7 @@
   ```
    ![alt text](image/network_namespace13.png)
 
-- Cấu hình cấp DHCP cho 2 namespace khác nhau
+# 1.2.4 Cấu hình cấp DHCP cho 2 namespace khác nhau
 
  ![alt text](image/network_namespace14.png)
  
@@ -192,7 +194,48 @@
    ip link set dev veth-r up
    ip link set dev veth-g up
    ```
-    
+ + Thực hiện tạo tap `tap-r` và `tap-g` để thực hiện kết nối đến namespace `DHCP-R` và `DHCP-G` đến `OVS1`
+
+  ```
+  ovs-vsctl add-port OVS1 tap-r 
+  ovs-vsctl set interface tap-r type=internal
+  ip link set tap-r netns dhcp-r
+  ovs-vsctl set port tap-r tag=100
+  ip netns exec dhcp-r ip link set dev lo up
+  ip netns exec dhcp-r ip link set dev tap-r up
+  ovs-vsctl add-port OVS1 tap-g 
+  ovs-vsctl set interface tap-g type=internal
+  ip link set tap-g netns dhcp-g
+  ovs-vsctl set port tap-g tag=200
+  ip netns exec dhcp-g ip link set dev lo up
+  ip netns exec dhcp-g ip link set dev tap-g up
+  ```
+ + Thực hiện gắn địa chỉ IP cho namespace `DHCP-R` và `DHCP-G`
+
+  ```
+  ip netns exec dhcp-r bash
+  ip address add 10.50.50.2/24 dev tap-r
+
+  ip netns exec dhcp-g bash
+  ip address add 10.50.50.2/24 dev tap-g
+  ```
+ + Thực hiện chạy `DNSMASQ` trong 2 namespace `DHCP-R` và `DHCP-G`
+
+  ```
+  ip netns exec dhcp-r dnsmasq --interface=tap-r --dhcp-range=10.50.50.10,10.50.50.100,255.255.255.0 
+  ip netns exec dhcp-g dnsmasq --interface=tap-g --dhcp-range=10.50.50.10,10.50.50.100,255.255.255.0
+  ```
+  ![alt text](image/network_namespace15.png)
+ 
+ + Thực hiện chạy dhcp clinet với namespace `red` và `green`. Ở đây 2 namespace `DHCP-R` và `DHCP-G` đóng vai trò là DHCP server cấp IP tự động có 2 namespace `red` và `green` thông qua interface `eth0-r` và `eth0-g`
+  
+  ```
+   ip netns exec red dhclient eth0-r
+   ip netns exec red ip a
+   ip netns exec green dhclient eth0-g
+   ip netns exec green ip a
+  ``` 
+  ![alt text](image/network_namespace16.png)
 
 
 
