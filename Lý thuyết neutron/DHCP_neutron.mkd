@@ -1,0 +1,31 @@
+# Tìm hiểu DHCP và DHCP trong Neutron Openstack
+## DHCP là gì? 
+ - DHCP (Dynamic Host Configuration Protocol) là một giao thức mạng được sử dụng để tự động hóa việc gắn IP và các thông số cấu hình khác cho các thiết bị trong một mạng. Thay vì phải cấu hình thủ công IP cho từng thiết bị, DHCP cho phép thiết bị kết nối vào một mạng và nhận các thông tin mạng cần có như IP, subnet, default gateway, địa chỉ DNS server tự động từ DHCP server
+
+ - Điều này giúp quản lý và duy trì các mạng lớn một các dễ dàng và chắc chắn các thiết bị trong cùng 1 mạng giao tiếp với nhau mà không có conflicts. 
+
+ - DHCP hoạt động như mô hình client-server và sử dụng giao thức UDP, với cổng mặc định của server là 67 và client là 68
+
+ - Các thành phần của DHCP:
+
+     + DHCP server: DHCP server là một server để giữ địa chỉ IP và tất cả các thông tin cấu hình mạng cần thiết 
+
+     + DHCP Client: Là thiết bị nhận thông tin cấu hình từ máy chủ. Có thể là điện thoại, laptop, máy tính hoặc bất kỳ thiết bị điện tử nào cần kết nối mạng.
+
+     + DHCP Relay: DHCP Relay hoạt động như một kênh giao tiếp giữa DHCP Client và DHCP Server
+
+     + IP Address Pool: Là tập hợp (kho) các địa chỉ IP được DHCP Server quản lý. Nó chứa dải địa chỉ có thể cấp phát cho các thiết bị.
+
+     + Lease: Lease là khoảng thời gian mà thông tin IP được cấp có hiệu lực. Khi lease hết hạn, thiết bị phải gia hạn để tiếp tục sử dụng IP đó.
+
+     + DNS Servers: DHCP server có thể cung cấp DNS cho DHCP client để phân giải tên miền
+
+     + Default Gateway: DHCP Server cũng có thể cung cấp thông tin về gateway mặc định – là thiết bị nhận gói tin đi ra ngoài mạng nội bộ.
+
+     + Renewal: DHCP Client có thể yêu cầu gia hạn lease trước khi hết hạn để tiếp tục giữ địa chỉ IP.
+
+     + Failover: DHCP Server có thể được cấu hình dự phòng với 2 máy chủ hoạt động cùng nhau để đảm bảo thiết bị luôn có thể nhận IP, ngay cả khi một server bị lỗi.
+     
+     + Dynamic Updates: DHCP Server có thể cập nhật động thông tin IP vào DNS, giúp việc quản lý tài nguyên mạng dễ dàng hơn.
+
+     + Audit Logging: DHCP Server có thể ghi lại nhật ký tất cả giao dịch DHCP, cung cấp thông tin về thiết bị nào đang dùng IP nào và thời điểm nào được cấp 
