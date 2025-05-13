@@ -104,10 +104,12 @@
 
  - OpenStack hỗ trợ các công nghệ cách ly mạng và overlay sau:
 
-  + Flat: Tất cả các instance cùng nằm trên một dải mạng vật lý và có thể cùng dải mạng với host, không có tag VLAN hay phương pháp phân tách nào khác.
+   + Flat: Tất cả các instance cùng nằm trên một dải mạng vật lý và có thể cùng dải mạng với host, không có tag VLAN hay phương pháp phân tách nào khác.
 
-  + VLAN: Cho phép tạo nhiều mạng provider hoặc project với các VLAN ID (802.1q) tương ứng với VLAN trên hạ tầng mạng vật lý. Cho phép máy ảo giao tiếp với nhau, và với các thiết bị như server vật lý, firewall, load balancer v.v. nếu chúng cùng VLAN.
+   + VLAN: Cho phép tạo nhiều mạng provider hoặc project với các VLAN ID (802.1q) tương ứng với VLAN trên hạ tầng mạng vật lý. Cho phép máy ảo giao tiếp với nhau, và với các thiết bị như server vật lý, firewall, load balancer v.v. nếu chúng cùng VLAN.
 
-  + VXLAN và GRE: là các giao thức đóng gói (encapsulation protocols) được sử dụng để tạo ra mạng overlay (mạng phủ) nhằm kích hoạt và kiểm soát việc giao tiếp giữa các máy ảo (compute instances). Sử dụng một router để cho phép lưu lượng khi sử dụng VXLAN và GRE đi ra ngoài internet. Router này còn có thể giúp VM ra ngoài internet một cách trực tiếp thông qua floating IP 
+   + VXLAN và GRE: là các giao thức đóng gói (encapsulation protocols) được sử dụng để tạo ra mạng overlay (mạng phủ) nhằm kích hoạt và kiểm soát việc giao tiếp giữa các máy ảo (compute instances). Sử dụng một router để cho phép lưu lượng khi sử dụng VXLAN và GRE đi ra ngoài internet. Router này còn có thể giúp VM ra ngoài internet một cách trực tiếp thông qua floating IP 
   
    ![alt text](image/self-service-network.png)
+
+### 2.1 Kiến trúc luồng đi mạng của self-service network
