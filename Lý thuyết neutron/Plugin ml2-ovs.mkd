@@ -7,15 +7,20 @@
      + Type drivers: Xác định mạng OpenStack được triển khai bằng cách nào ở tầng vật lý.
       
       VLAN : Phân tách lưu lượng mạng bằng gán nhãn 802.1Q. Các virtual machine thuộc cùng một VLAN sẽ nằm trong cùng một broadcast domain L2.
+
       VXLAN : Sử dụng Virtual Network Identifier (VNI) để tách biệt và phân biệt lưu lượng giữa các mạng khác nhau.
+
       Flat : Không hỗ trợ VLAN tagging hoặc phân vùng mạng, nơi các instance được kết nối trong cùng một mạng.
+
       GRE : Gói lại lưu lượng bằng giao thức tunneling GRE.
+
       Geneve : Tương tự như công nghệ overlay VXLAN nhưng với phương pháp encapsulation tối ưu hơn.
+
       Local : Chỉ cho phép kết nối instance trong cùng một compute node, không kết nối với instance ở các compute node khác.
 
      + Mechanism drivers: Là thành phần chịu trách nhiệm hiện thực cấu hình mạng vào hạ tầng vật lý hoặc ảo, dựa trên thông tin mà type drivers cung cấp.Thực thi các công nghệ type driver thông qua cả các phương pháp phần mềm mạng (như Open vSwitch, Linux Bridge, OVN) và các phương pháp dựa trên phần cứng.
       
-      ![alt text](image/ML2_1.png)
+  ![alt text](image/ML2_1.png)
 
 ### 1.1.ML2 driver support matrix
 
