@@ -1,0 +1,24 @@
+# Nghiên cứu IP floating và DNAT
+
+## 1.Floating IP
+
+ - Floating IP là một địa chỉ IP public, tĩnh và có thể được gắn cho máy ảo, nằm trong một mạng con riêng (private subnet). Điều này có nghĩa là không cần gắn cho VM vào 1 dải mạng public nhưng máy ảo vẫn có thể đi ra được bên ngoài bằng cách xử dụng Floating IP
+
+ - Floating IP không được tự động gán mà chính người quản trị mới có quyền gán IP Floating
+
+  ![alt text](image/IP_floating.png)
+
+## 2. DNAT
+
+ - Destination Network Address Translation (DNAT) được sử dụng khi một máy chủ bên ngoài muốn khởi tạo kết nối đến một mạng nội bộ (private network).
+
+ - DNAT sẽ dịch địa chỉ IP công cộng (public IP) thành địa chỉ IP riêng (private IP) của máy chủ nội bộ. DNAT cũng có thể dịch cổng đích (destination port) trong các header của TCP/UDP.
+
+ - Việc ánh xạ (mapping) này có thể bao gồm toàn bộ các cổng TCP/UDP, hoặc chỉ một số cổng nhất định nếu tính năng port forwarding (chuyển tiếp cổng) được bật.
+
+  ![alt text](image/DNAT.png)
+
+ - DNAT sẽ thay đổi địa chỉ đích trong phần tiêu đề IP của gói tin, và cũng có thể thay đổi cổng đích trong tiêu đề TCP/UDP. DNAT thường được dùng để chuyển hướng các gói tin đến IP/cổng công cộng sang IP/cổng riêng trong mạng nội bộ.
+
+
+
