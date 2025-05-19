@@ -1,0 +1,47 @@
+# Nghiên cứu Security group
+
+## Security group là gì
+
+ - Security Group là một bộ các quy tắc bảo mật mạng , dùng để kiểm soát lưu lượng mạng vào/ra từ các máy ảo (instance) trong hệ thống cloud. Giống như tường lửa ảo (firewall) áp dụng ở cấp độ instance, mỗi rule trong Security Group xác định: Loại giao thức (TCP, UDP, ICMP,...), cổng (port): Ví dụ port 80 (HTTP), 22 (SSH),...IP nguồn hoặc dải mạng được phép truy cập
+
+ - Mỗi project (hay còn gọi là tenant) trong hệ thống cloud có thể có các Security Group riêng. Người dùng (user) thuộc project A chỉ có thể xem và quản lý các Security Group thuộc project A đó. Điều này giúp đảm bảo phân quyền rõ ràng giữa các nhóm người dùng khác nhau trong cùng một hệ thống cloud. 
+
+ - Security Group trong OpenStack (kết hợp với KVM) được thực thi thông qua iptables
+
+ - Mọi project sẽ có 1 security group mặc định, về mặt bản chất security group là tài nguyên của neutron nó được gắn vào cho từng port của VM chứ không phải là từng VM 
+
+## Một số câu lệnh với sercurity group
+
+ - List các security group hiện có trong project:
+  
+  ![alt text](image/sercurity1.png)
+
+ Các security group có thể trùng tên nhau nên ta có thể sử dụng thêm option `--project` để xác định chính xác security group của project cần 
+
+ - Xem chi tiết security group:
+
+  ` openstack security group rule list <Security_group> `
+
+  ![alt text](image/sercurity2.png)
+
+
+ - Tạo một security group:
+
+  ![alt text](image/sercurity3.png)
+
+ - Cho phép ping tới VM:
+
+  ![alt text](image/sercurity4.png)
+
+ - Cho phép truy cập qua port 80 dịch vụ web
+
+  ![alt text](image/sercurity5.png)
+
+
+
+  
+  
+  
+
+
+

@@ -1,0 +1,45 @@
+# Nghiên cứu về ML2
+## 1.Tổng quan về ML2
+- Plugin Modular Layer 2 (ML2) trong Neutron là một khung (framework) cho phép OpenStack Networking sử dụng đồng thời nhiều công nghệ mạng tầng 2 (Layer 2) khác nhau – điều này rất phù hợp với các trung tâm dữ liệu thực tế vốn có hạ tầng phức tạp, nói cách khác ML2 cho phép sử dụng nhiều kiểu mạng với các công nghệ mạng backend khác nhau 
+
+- ML2 phân biệt hai loại driver khác nhau:
+
+     + Type drivers: Xác định mạng OpenStack được triển khai bằng cách nào ở tầng vật lý.
+      
+      VLAN : Phân tách lưu lượng mạng bằng gán nhãn 802.1Q. Các virtual machine thuộc cùng một VLAN sẽ nằm trong cùng một broadcast domain L2.
+
+      VXLAN : Sử dụng Virtual Network Identifier (VNI) để tách biệt và phân biệt lưu lượng giữa các mạng khác nhau.
+
+      Flat : Không hỗ trợ VLAN tagging hoặc phân vùng mạng, nơi các instance được kết nối trong cùng một mạng.
+
+      GRE : Gói lại lưu lượng bằng giao thức tunneling GRE.
+
+      Geneve : Tương tự như công nghệ overlay VXLAN nhưng với phương pháp encapsulation tối ưu hơn.
+
+      Local : Chỉ cho phép kết nối instance trong cùng một compute node, không kết nối với instance ở các compute node khác.
+
+     + Mechanism drivers: Là thành phần chịu trách nhiệm hiện thực cấu hình mạng vào hạ tầng vật lý hoặc ảo, dựa trên thông tin mà type drivers cung cấp.Thực thi các công nghệ type driver thông qua cả các phương pháp phần mềm mạng (như Open vSwitch, Linux Bridge, OVN) và các phương pháp dựa trên phần cứng.
+      
+  ![alt text](image/ML2_1.png)
+
+### 1.1.ML2 driver support matrix
+
+  ![alt text](image/ML2_2.png)
+
+## 2. Cấu hình 
+### 2.1.Network type drivers
+
+ - Để cấu hình type drivers trong ML2 plug-in. Sửa file /etc/neutron/plugins/ml2/ml2_conf.ini:
+ ```
+ [ml2]
+ type_drivers = flat,vlan,vxlan,gre
+
+ ```
+
+### 2.2.Mechanism drivers
+ - Để kích hoạt mechanism driver trong ML2 plug-in, sửa file `/etc/neutron/plugins/ml2/ml2_conf.ini` trên neutron server:
+
+ ```
+ [ml2]
+ mechanism_drivers = ovs,l2pop
+ ``` 

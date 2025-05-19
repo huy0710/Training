@@ -1,0 +1,255 @@
+# Tìm hiểu về network namespace
+## 1.1 Network namespace là gì?
+- Network namespace là một tính năng của kernel cho phép tạo ra một môi trường mạng riêng biệt, ở đó có các thành phần mạng riêng biệt như: interfaces, routing tables, forwarding rules....
+- Network namespace được sử dụng rộng rãi OpenStack, docker, podman, cri-o....
+## 1.2 Một số thao tác quản lý làm việc với linux network namespace
+
+### 1.2.1 Kết nối 2 namespace dùng OVS
+
+ + Thực hiện tạo 2 network namspace là `red` và `green`, tạo 2 `veth` để kết nối từ môi trường của 2 namespace đến OpenVswitch bridge và assign IP cho 2 interface của 2 namespace và thực hiện `ping`
+
+ ![alt text](image/network_namespace10.png)  
+
+ + Thực hiện tạo 2 namespace
+   ```
+   ip netns add red
+   ip netns add green
+   ip netns list
+   ls -l /var/run/netns
+   ```
+  Thực hiện tạo 2 network namespace
+
+  ![alt text](image/network_namespace1.png)
+
+ + Câu lệnh thao tác với namespace 
+   ```
+   ip netns exec <namespace> <command>
+   ```
+   Ví dụ chạy lệnh `ip a` trong ở namespace `red`
+
+   ![alt text](image/network_namespace2.png)
+
+   Để sử dụng các câu lệnh với namespace ta sử dụng command bash `ip netns exec <namespace_name> bash`
+
+   ![alt text](image/network_namespace3.png)
+
+ + Thực hiện tạo OVS brigde để kết nối 2 namespace với nhau
+   ```
+     ovs-vsctl add-br OVS1
+     ovs-vsctl list-br
+     ovs-vsctl show
+   ```
+   ![alt text](image/network_namespace4.png)
+
+ + Để thực hiện kết nối 2 namespace với nhau thì sử dụng một đường `VETH`, thực hiện tạo 2 đường `VETH`, một đường kết nối với namespace `red` và một đường kết nối với namspace `green`
+
+   ```
+   ip link add eth0-r type veth peer name veth-r
+   ip link add eth0-g type veth peer name veth-g
+   ``` 
+    ![alt text](image/network_namespace5.png)
+
+ + Thực hiện gắn interface `eth0-r` vào namespace `red` và gắn interface `eth0-g` vào namespace `green`
+   ```
+   ip link set eth0-r netns red
+   ip link set eth0-g netns green
+   ``` 
+   ![alt text](image/network_namespace6.png)
+
+ + Tiếp theo thực hiện gắn đường `VETH` vào `OVS1` 
+   ```
+   ovs-vsctl add-port OVS1 veth-r
+   ovs-vsctl add-port OVS1 veth-g
+   ```
+   ![alt text](image/network_namespace7.png)
+
+ + Thực hiện gắn IP cho các interface `eth0-r` và `eth0-g`
+   ```
+   # Bring up the local and eth0-r interface
+   ip netns exec red ip link set dev lo up
+   ip netns exec red ip link set dev eth0-r up
+   # Assign IP 10.0.0.1/24 to eth0-r
+   ip netns exec red ip address add 10.0.0.1/24 dev eth0-r
+   # See IP address info
+   ip netns exec red ip a
+   ```
+   ![alt text](image/network_namespace8.png)
+
+ Tương tự thực hiện với namespace `green`
+
+ + Thực hiện `bring up` với `veth-r` và `veth-g` và thực hiện test `ping` giữa 2 môi trường
+
+   ![alt text](image/network_namespace9.png)
+
+# 1.2.2 Thực hiện tạo kết nối 2 namespace với nhau dùng 1 đường `VETH`
+
+ + Thực hiện tạo 2 namespace:
+  ```
+  ip netns add ns1
+  ip netns add ns2
+  ```
+ + Tạo veth pair tap1 và tap2
+
+  ```
+  ip link add tap1 type veth peer name tap2
+  ```
+ + Di chuyển interface tap1 đến namespaces ns1 và interface tap2 đến namespaces ns2
+  
+  ```
+  ip link set tap1 netns ns1 
+  ip link set tap2 netns ns2
+  ```
+ + Bring up tap1 và tap2
+
+  ```
+  ip netns exec ns1 ip link set dev tap1 up
+  ip netns exec ns2 ip link set dev tap2 up
+  ```
+ + Gắn địa chỉ IP cho tap1 và tap2
+  
+  ```
+  ip netns exec ns1 ip a add 10.0.0.1/24 dev tap1
+  ip netns exec ns2 ip a add 10.0.0.2/24 dev tap2
+  ```
+ + Ping thử giữa tap1 và tap2 interface
+
+  ![alt text](image/network_namespace11.png)
+
+# 1.2.3 Sử dụng linux brigde để kết nối 2 namespace với nhau: 
+  
+  ![alt text](image/network_namespace12.png)
+
+ + Thực hiện tạo 2 namespace `red` và `green` và sau đó thực hiện tạo linux brigde `vnet-br0`
+
+  ```
+   ip netns add red 
+   ip netns add green
+   ip link add vnet-br0 type bridge
+   ip link
+  ```
+ + Thực hiện tạo kết nối từ `eth0-r` đến `veth-r` và `eth0-g` sang `veth-g` sau đó thực hiện gán các interface `eth0-r` vào namespace `red` và thực hiện gắn `eth0-g` vào  namespace `green` và gắn `veth-g` và `veth-r` vào brigde
+
+ ```
+   ip link add eth0-r type veth peer name veth-r
+   ip link add eth0-g type veth peer name veth-g
+   ip link set eth0-r netns red
+   ip link set eth0-g netns green
+   ip link set veth-r master vnet-br0
+   ip link set veth-g master vnet-br0
+ ```
+ + Thực hiện bring up các interface 
+
+  ```
+  ip link set vnet-br0 up
+  ip link set veth-r up
+  ip link set veth-g up
+  ip netns exec red ip link set lo up
+  ip netns exec red ip link set eth0-r up
+  ip netns exec green ip link set lo up
+  ip netns exec green ip link set eth0-g up
+  ```
+ + Cấu hình IP cho các interface `eth0-r` và `eth0-g` sau đó thực hiện ping giữa 2 namespace
+  
+  ```
+  ip netns exec red bash
+  ip address add 192.168.20.2/24 dev eth0-r
+  ip netns exec green bash
+  ip address add 192.168.20.3/24 dev eth0-g
+  ```
+   ![alt text](image/network_namespace13.png)
+
+# 1.2.4 Cấu hình cấp DHCP cho 2 namespace khác nhau
+
+ ![alt text](image/network_namespace14.png)
+ 
+ Ở đây namespace `red` và `green` được tag vlan `VLAN 100` và `VLAN 200` vì vậy nó không thể kết nối đến nhau dù có cùng địa chỉ IP, mỗi namespace được cung cấp một địa chỉ IP tự động thông qua namespace `DHCP-R` và `DHCP-G` được kết nối với openvswitch `OVS1`
+
+ + Thực hiện tạo 4 namespace `red` `green` `DHCP-R` `DHCP-G` và thực hiện tạo một veth pair từ namespace `red` `green` đến `OVS1`
+  
+  ```
+  ip netns add red
+  ip netns add green
+  ip netns add dhcp-r
+  ip netns add dhcp-g
+  ip link add eth0-r type veth peer name veth-r
+  ip link add eth0-g type veth peer name veth-g
+  ```
+ + Gắn `eth0-r` và `eth0-g` và 2 namespace `red` và `green` và thực hiện bring up tất các các interface
+ 
+  ```
+  ip link set eth0-r netns red
+  ip link set eth0-g netns green
+  ip netns exec red ip link set dev lo up
+  ip netns exec red ip link set dev eth0-r up
+  ip netns exec green ip link set dev lo up
+  ip netns exec green ip link set dev eth0-g up
+  ```
+ 
+ + Gắn `veth-r` và `veth-g` vào `OVS1` và thực hiện bring up tất cả các interface và thực hiện tag VLAN cho 2 `veth-r` và `veth-g`
+  
+   ```
+   ovs-vsctl add-port OVS1 veth-r
+   ovs-vsctl add-port OVS1 veth-g
+   ovs-vsctl set port veth-r tag=100
+   ovs-vsctl set port veth-r tag=200
+   ip link set dev veth-r up
+   ip link set dev veth-g up
+   ```
+ + Thực hiện tạo tap `tap-r` và `tap-g` để thực hiện kết nối đến namespace `DHCP-R` và `DHCP-G` đến `OVS1`
+
+  ```
+  ovs-vsctl add-port OVS1 tap-r 
+  ovs-vsctl set interface tap-r type=internal
+  ip link set tap-r netns dhcp-r
+  ovs-vsctl set port tap-r tag=100
+  ip netns exec dhcp-r ip link set dev lo up
+  ip netns exec dhcp-r ip link set dev tap-r up
+  ovs-vsctl add-port OVS1 tap-g 
+  ovs-vsctl set interface tap-g type=internal
+  ip link set tap-g netns dhcp-g
+  ovs-vsctl set port tap-g tag=200
+  ip netns exec dhcp-g ip link set dev lo up
+  ip netns exec dhcp-g ip link set dev tap-g up
+  ```
+ + Thực hiện gắn địa chỉ IP cho namespace `DHCP-R` và `DHCP-G`
+
+  ```
+  ip netns exec dhcp-r bash
+  ip address add 10.50.50.2/24 dev tap-r
+
+  ip netns exec dhcp-g bash
+  ip address add 10.50.50.2/24 dev tap-g
+  ```
+ + Thực hiện chạy `DNSMASQ` trong 2 namespace `DHCP-R` và `DHCP-G`
+
+  ```
+  ip netns exec dhcp-r dnsmasq --interface=tap-r --dhcp-range=10.50.50.10,10.50.50.100,255.255.255.0 
+  ip netns exec dhcp-g dnsmasq --interface=tap-g --dhcp-range=10.50.50.10,10.50.50.100,255.255.255.0
+  ```
+  ![alt text](image/network_namespace15.png)
+ 
+ + Thực hiện chạy dhcp clinet với namespace `red` và `green`. Ở đây 2 namespace `DHCP-R` và `DHCP-G` đóng vai trò là DHCP server cấp IP tự động có 2 namespace `red` và `green` thông qua interface `eth0-r` và `eth0-g`
+  
+  ```
+   ip netns exec red dhclient eth0-r
+   ip netns exec red ip a
+   ip netns exec green dhclient eth0-g
+   ip netns exec green ip a
+  ``` 
+  ![alt text](image/network_namespace16.png)
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+

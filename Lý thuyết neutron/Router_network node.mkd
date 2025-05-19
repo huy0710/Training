@@ -1,0 +1,93 @@
+# Nghiên cứu về Router và network node trong Openstack
+
+## 1. Router trong Openstack
+ 
+ - Là một thành phần logic (ảo) do Neutron quản lý, có vai trò như một router lớp 3 (L3) trong mạng máy tính. Kết nối giữa các subnet khác nhau, cho phép instance giao tiếp với mạng bên ngoài (external network). Thực hiện NAT nếu cần thiết.
+
+ - Các máy ảo khác mạng với nhau sẽ giao tiếp với nhau thông qua router. Trong OpenStack, Neutron L3 agent chịu trách nhiệm quản lý các router ảo.
+
+  ![alt text](image/router.png)
+
+ - qr: chứa địa chỉ IP gateway của mạng tenant (mạng self-service). Giao diện này chuyên dùng để định tuyến lưu lượng nội bộ giữa các mạng self-service (các mạng ảo của tenant trong OpenStack).
+
+ - qg: chứa địa chỉ IP gateway của mạng external (mạng cung cấp bởi nhà hạ tầng). Giao diện này chuyên dùng để định tuyến lưu lượng ra ngoài, kết nối mạng nội bộ của tenant với mạng ngoài (ví dụ Internet).
+  
+  ![alt text](image/router1.png)
+
+
+
+## 2. Network node openstack 
+
+ - Network node (nút mạng) là một thành phần rất quan trọng trong kiến trúc mạng của OpenStack Neutron , có vai trò xử lý các chức năng mạng phức tạp như: định tuyến, NAT, DHCP, firewall và kết nối tới mạng bên ngoài.
+
+  ![alt text](image/node_network.png)
+
+     + `neutron-metadata-agent` : Cung cấp metadata (thông tin về instance) cho guest VM.
+
+     +  `neutron-DHCP-agent` : Cấp phát địa chỉ IP động cho instance thông qua giao thức DHCP
+
+     +  `neutron-L3-agent` : Quản lý router và NAT giữa các subnet nội bộ và external network. L3 agent cũng có thể triển khai các chức năng mạng nâng cao như tường lửa (firewalls) và VPN.
+    
+     +  `neutron- plugin agent *`: Các agent thực thi plugin mạng (ví dụ: OVS, Linux Bridge). 
+
+
+## 3. Cơ chế NAT
+
+ - Kỹ thuật NAT (Network Address Translation) được sử dụng để chuyển đổi giữa IP private và IP public.
+ - Ý nghĩa của địa chỉ private: được sử dụng để bảo tồn địa chỉ IP public đang dần cạn kiệt
+
+### 3.1 Các loại NAT
+ 
+ - Static NAT Là quá trình ánh xạ 1-1 từ địa chỉ IP private thành địa chỉ IP public. Được sử dụng khi số lượng IP trong LAN bằng số NAT-IP
+  
+   ![alt text](image/NAT.png)
+
+ - Dynamic NAT: là quá trình ánh xạ một địa chỉ IP private thành một địa chỉ IP public từ một dải các địa chỉ IP đã được đăng kí. Mỗi kết nối từ bên trong muốn ra ngoài sẽ được cung cấp một địa chỉ trong dải. Nếu dải địa chỉ này đã được cấp phát hết thì các kết nối sẽ không thể ra ngoài nữa. 
+
+   ![alt text](image/NAT1.png)
+
+ - NPAT (Network Port Address Translation) các địa chỉ IP trong mạng LAN được dấu dưới một địa chỉ NAT-IP. Mỗi gói tin được gửi ra ngoài bằng địa chỉ NAT-IP và port nguồn được thay thế bằng một cổng nào đó chưa được dùng ở NAT (thường lớn hơn 1204). Khi nhận được gói tin, router sẽ kiểm tra địa chỉ IP và port trong bảng NAT và chuyển nó đến host. 
+   
+   ![alt text](image/NAT2.png)
+
+### 3.2 Tổng quan về SNAT và DNAT
+
+ - SNAT là viết tắt của Source Network Address Translation, SNAT được sử dụng khi muốn một máy tính muốn kết nối ra bên ngoài, Thiết bị thực hiện NAT thay đổi địa chỉ IP private của máy chủ nguồn thành IP Public. Nó cũng có thể thay đổi cổng nguồn trong TCP/ UDP
+
+ - DNAT DNAT là viết tắt của Destination Network Address Translation. Nó có chức năng thay đổi địa chỉ đích trong IP của gói tin. Ngoài ra, DNAT cũng có thể thay đổi cổng đích trong TCP / UDP. Ứng dụng của DNAT là khi muốn truyền một gói tin từ địa chỉ IP public đến IP private. Người dùng qua internet truy cập máy chủ web được lưu trữ trong trung tâm dữ liệu là một ví dụ điển hình mà DNAT được sử dụng để ẩn địa chỉ private. Đồng thời, thiết bị NAT chuyển IP đích public mà người dùng internet có thể truy cập thành địa chỉ IP private của máy chủ web.
+   
+
+
+## 4. HA router
+
+ - Để triển khai HA cho router thì có 2 cơ chế sử dụng chính đó là 
+    
+     + VRRP (Virtual Router Redundancy Protocol)
+     + DVR (Distributed Virtual Routing) 
+
+ - High availability using VRRP: 
+
+     + Trong môi trường Openstack để các máy ảo có thể kết nối đến với nhau một cách ổn định kể cả khi một node network down hay 1 router ảo không hoạt động thì Openstack dùng cơ chế HA router, ở đây Openstack dùng VRRP (Virtual Router Redundancy Protocol) là một giao thức cho phép nhiều router ảo phối hợp để đảm bảo luôn có một router hoạt động.
+
+     + Triển khai này yêu cầu tối thiểu hai node mạng (network node) vì VRRP sẽ tạo ra một router chính (master - hoạt động) và ít nhất một router dự phòng (backup) cho mỗi router.
+
+     + Khi router hoạt động bình thường keepalived hoạt động trên router sẽ gửi các gói tin “heartbeat” định kỳ để thông báo rằng nó hoạt động vẫn bình thường Các router backup (dự phòng) sẽ nhận gói này để biết rằng chưa cần takeover.
+
+     + Các router kết nối với nhau thông qua một hidden network và loại network được định nghĩa là loại mạng đầu tiên ở trong 
+     `tenant_network_types`, có thể định nghĩa loại mạng hidden network qua thông số `l3_ha_network_type` và `l3_ha_network_name` options in the neutron.conf 
+
+     + Nếu dịch vụ keepalived trên router dự phòng (backup router) ngừng nhận được các gói heartbeat (gói tín hiệu kiểm tra trạng thái) từ router chính (master router), nó sẽ giả định rằng router chính đã bị lỗi, và sẽ nâng router dự phòng lên thành router chính bằng cách gán địa chỉ IP lên các giao diện mạng trong namespace qrouter.
+
+     + Trong trường hợp có nhiều hơn một router dự phòng, dịch vụ keepalived trên router dự phòng có độ ưu tiên cao hơn (priority) sẽ được chọn làm router chính mới.
+
+      ![alt text](image/HA_router.png)
+
+ - High availability using DVR:
+
+     + Sử dụng DVR tức là ở mỗi compute node sẽ có một router chịu trách nhiệm định tuyến các máy ảo nằm trong compute node đó, với floating IP thì lưu lượng sẽ đi trực tiếp vào compute node mà k cần qua network node 
+
+     + Cấu hình DVR trong Neutron yêu cầu phải sử dụng driver cơ chế Open vSwitch, và phải cài L3 agent trên các node compute. 
+
+      ![alt text](image/DVR.png)
+
+

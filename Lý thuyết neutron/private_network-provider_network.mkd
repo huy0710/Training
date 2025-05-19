@@ -1,0 +1,246 @@
+# Nghiên cứu về provider network và private network trong Openstack
+## 1. Provider network
+
+ - Provider networks cung cấp kết nối layer 2 cho các máy ảo với các tùy chọn hỗ trợ cho dịch vụ DHCP và metadata. Các kết nối này thường sử dụng VLAN (802.1q) để nhận diện và tách biệt nhau. Nhìn chung, Provider networks cũng cấp sự đơn giản, hiệu quả và sự minh bạch, linh hoạt trong chi phí. Mặc định chỉ có duy nhất người quản trị (admin) mới có thể tạo hoặc cập nhật provider networks bởi nó yêu cầu phải cấu hình thiết bị vật lí.
+
+ - Bên cạnh đó, các provider network chỉ quản lí kết nối ở layer 2 cho máy ảo, vì thế nó thiếu đi một số tính năng ví dụ như định tuyến và gán floating IP.
+
+  ![alt text](image/provider-network1.png)
+
+  ![alt text](image/provider-network2.png)
+
+ - Ở các mô hình này thì có thể thấy được một instance sẽ được gắn vào một dải mạng provider netwok, và các interface của instance này sẽ được kết nối với card mạng của của node compute thông qua OVS để đi ra mạng hạ tầng vật lý 
+
+ ## 1.1 Kiến trúc của luồng đi mạng trong provider network
+ ### 1.1.1 Kịch bản North-south 
+ - Máy ảo được đặt trong mạng provider và thực hiện gửi gói tin ra ngoài internet. Trong mô hình mạng sử dụng OVS(OpenvSwitch) vẫn sử dụng Linux bridge để áp dụng security group cho các máy ảo.
+  
+ ![alt text](image/provider-network3.png)
+- Các bước sau đây liên quan đến compute node:
+
+ 1. Interface của máy ảo(1) chuyển tiếp gói tin đến port của máy ảo(2) trên security group bridge thông qua veth pair.
+ 2. Các rule của security group(3) trên security group bridge xử lý việc liên quan đến tường lửa và theo dõi kết nối cho gói tin.
+ 3. Gói tin được chuyển từ Linux Bridge sang OVS Integration Bridge (thường là int-br-provider) thông qua veth pair.
+ 4. OVS br-int tiếp nhận gói tin, đánh thêm một VLAN nội bộ (internal VLAN tag) để định tuyến nội bộ giữa các bridge (5).
+ 5. Gói tin đi từ int-br-provider sang OVS provider bridge (phy-br-provider) qua cặp patch port nối giữa hai bridge.(6)
+ 6. Tại đây, OVS provider bridge chuyển VLAN nội bộ thành VLAN của hệ thống mạng.
+ 7. Port mạng trên OVS provider network chuyển tiếp gói tin đến interface vật lý(9).
+ 8. Interface vật lý chuyển tiếp gói tin cho switch ở hạ tầng mạng vật lý(10).
+
+ - Các bước sau liên quan đến hạ tầng mạng vật lý.
+
+ 1. Switch gỡ Vlan tag 101 khỏi gói tin và chuyển tiếp nó đến router(11)
+ 2. Router định tuyến gói tin từ mạng provider(12) ra mạng ngoài(13) và chuyển tiếp gói tin đến switch(14)
+ 3. Switch chuyển tiếp gói tin ra mạng ngoài(15).
+ 4. Mạng ngoài nhận gói tin (16).
+
+### 1.1.2 Kịch bản East-west: Hai máy ảo cùng mạng 
+
+  ![alt text](image/provider-network4.png)
+
+ - Các bước sau đây liên quan đến compute node 1:
+
+  1. Interface của máy ảo(1) chuyển tiếp gói tin đến port của máy ảo(2) trên security group bridge thông qua veth pair.
+  2. Các rule của security group(3) trên security group bridge xử lý việc liên quan đến tường lửa và theo dõi kết nối cho gói tin.
+  3. Gói tin được chuyển từ Linux Bridge sang OVS Integration Bridge (thường là int-br-provider) thông qua veth pair.
+  4. OVS Integration bridge thêm một VLAN tag nội bộ cho gói tin.
+  5. Gói tin đi từ int-br-provider sang OVS provider bridge (phy-br-provider) qua cặp patch port nối giữa hai bridge.(6)
+  6. Tại đây, OVS provider bridge chuyển VLAN nội bộ thành VLAN của hệ thống mạng.
+  7. Port mạng trên OVS provider network chuyển tiếp gói tin đến interface vật lý(9).
+  8. Interface vật lý chuyển tiếp gói tin cho switch ở hạ tầng mạng vật lý(10).
+ - Các bước sau đây liên quan đến hạ tầng mạng vật lý:
+
+  1. Switch chuyển hướng gói tin từ compute node 1 đến compute node 2.
+ - Các bước sau đây liên quan đến compute node 2:
+
+  1. Interface vật lý(12) chuyển tiếp gói tin đến network port(13) trên OVS provider bridge.
+  2. Gói tin từ OVS provider bridge được chuyển đến OVS integration brigde thông qua cặp patch port nối giữa hai bridge
+  3. OVS integration bridge đổi VLAN tag 101 thành VLAN tag nội bộ.
+  4. Gói tin được chuyển từ OVS integration brigde sang linux brigde thông qua veth pair.
+  5. Các rule của security group(18) trên security group bridge xử lý việc liên quan đến tường lửa và theo dõi kết nối cho gói tin.
+  6. Port của máy ảo trên security group bridge (19) chuyển gói tin đến interface trên máy ảo nhận (20). 
+
+### 1.1.3 Kịch bản East-West: Hai máy ảo khác mạng.
+Ở kịch bản này, hai máy ảo với hai mạng khác nhau được đặt cùng trên một compute node.
+
+ ![alt text](image/provider-network5.png)
+
+- Các bước sau đây liên quan đến compute node:
+  1. Interface của máy ảo(1) chuyển tiếp gói tin đến port của máy ảo(2) trên security group bridge thông qua veth pair.
+  2. Các rule của security group(3) trên security group bridge xử lý việc liên quan đến tường lửa và theo dõi kết nối cho gói tin.
+  3. Gói tin được chuyển từ Linux Bridge sang OVS Integration Bridge (thường là int-br-provider) thông qua veth pair.
+  4. OVS Integration bridge thêm một VLAN tag nội bộ cho gói tin.
+  5. Gói tin đi từ int-br-provider sang OVS provider bridge (phy-br-provider) qua cặp patch port nối giữa hai bridge.(6)
+  6. Tại đây, OVS provider bridge chuyển VLAN nội bộ thành VLAN của hệ thống mạng.
+  7. Port mạng trên OVS provider network chuyển tiếp gói tin đến interface vật lý(9).
+  8. Interface vật lý chuyển tiếp gói tin cho switch ở hạ tầng mạng vật lý(10).
+
+- Các bước sau liên quan đến hạ tầng mạng vật lý:
+
+  1. Switch gỡ Vlan tag 101 khỏi gói tin và chuyển tiếp nó đến router(11).
+  2. Router định tuyến gói tin từ mạng Network 1(vlan 101)(12) đến network 2(vlan 102) (13) và chuyển tiếp gói tin đến switch(14).
+  3. Switch thêm VLAN tag 102 cho gói tin và chuyển về compute node 1(15).
+
+- Các bước sau liên quan đến compute node:
+
+  1. Interface vật lý(16) chuyển tiếp gói tin đến network port(17) trên OVS provider bridge.
+  2. Gói tin từ OVS provider bridge được chuyển đến OVS integration brigde thông qua cặp patch port nối giữa hai bridge.
+  3. OVS integration bridge đổi VLAN tag 102 thành VLAN tag nội bộ.
+  4. Gói tin được chuyển từ OVS integration brigde sang linux brigde thông qua veth pair.
+  5. Các rule của security group(22) trên security group bridge xử lý việc liên quan đến tường lửa và theo dõi kết nối cho gói tin.
+  6. Port của máy ảo trên security group bridge (23) chuyển gói tin đến interface trên máy ảo nhận (24)
+
+## 2. Self service network (private network)
+
+ - Self-service networks (mạng tự phục vụ) chủ yếu cho phép các project thông thường (không có quyền quản trị) tự quản lý mạng mà không cần can thiệp của quản trị viên. Các mạng này hoàn toàn là mạng ảo và yêu cầu router ảo để kết nối với mạng provider hoặc mạng ngoài (Internet). Self-service networks cũng thường cung cấp dịch vụ DHCP và metadata cho các máy ảo.
+
+ - Trong hầu hết các trường hợp, self-service networks sử dụng các giao thức overlay như VXLAN hoặc GRE, vì các giao thức này hỗ trợ số lượng mạng lớn hơn nhiều so với phương pháp phân đoạn lớp 2 sử dụng VLAN tagging (802.1q). Hơn nữa, việc dùng VLAN thường cần cấu hình thêm trên hạ tầng mạng vật lý.
+
+ - Self-service networks sử dụng địa chỉ IPv4 riêng (private IP – RFC1918) và kết nối với mạng provider thông qua source NAT trên router ảo. Địa chỉ floating IP cho phép truy cập đến máy ảo từ mạng provider thông qua destination NAT trên router ảo. Với IPv6, các self-service networks luôn dùng địa chỉ public IP và kết nối ra mạng provider thông qua static route trên router ảo.
+
+ - Dịch vụ mạng của OpenStack (Neutron) triển khai các router bằng agent lớp 3 (Layer-3 agent), thường được đặt trên ít nhất một nút mạng. Trái ngược với provider networks, nơi các máy ảo kết nối trực tiếp đến hạ tầng vật lý ở lớp 2, thì self-service networks phải đi qua Layer-3 agent. Vì vậy, nếu agent này bị quá tải hoặc lỗi, rất nhiều mạng self-service và máy ảo sẽ bị ảnh hưởng. Bạn nên triển khai thêm tính năng HA (high-availability) để tăng khả năng phục hồi và hiệu suất cho các self-service networks.
+
+ - Người dùng có thể tạo mạng riêng (project network) để các máy ảo trong cùng project giao tiếp với nhau. Mặc định, các mạng này hoàn toàn bị cô lập (isolated) và không chia sẻ với project khác.
+
+ - OpenStack hỗ trợ các công nghệ cách ly mạng và overlay sau:
+
+   + Flat: Tất cả các instance cùng nằm trên một dải mạng vật lý và có thể cùng dải mạng với host, không có tag VLAN hay phương pháp phân tách nào khác.
+
+   + VLAN: Cho phép tạo nhiều mạng provider hoặc project với các VLAN ID (802.1q) tương ứng với VLAN trên hạ tầng mạng vật lý. Cho phép máy ảo giao tiếp với nhau, và với các thiết bị như server vật lý, firewall, load balancer v.v. nếu chúng cùng VLAN.
+
+   + VXLAN và GRE: là các giao thức đóng gói (encapsulation protocols) được sử dụng để tạo ra mạng overlay (mạng phủ) nhằm kích hoạt và kiểm soát việc giao tiếp giữa các máy ảo (compute instances). Sử dụng một router để cho phép lưu lượng khi sử dụng VXLAN và GRE đi ra ngoài internet. Router này còn có thể giúp VM ra ngoài internet một cách trực tiếp thông qua floating IP 
+  
+   ![alt text](image/self-service-network.png)
+
+## 2.1 Kiến trúc luồng đi mạng của self-service network
+
+ Phần này sẽ mô tả luồng đi của lưu lượng mạng trong hai kịch bản phổ biến là North-south và East-west. Lưu lượng mạng North-south di chuyển giữa máy ảo và mạng bên ngoài như là internet. Lưu lượng mạng East-west di chuyển giữa các máy ảo trong cùng hoặc khác mạng với nhau.
+
+### 2.1.1 Kịch bản North-South 1: Máy ảo với fixed Ip.
+
+ Với máy ảo được gắn một IP tĩnh thì việc ra ngoài internet thì phải thông qua SNAT và đi qua Router để ra ngoài internet 
+
+ ![alt text](image/self-service-network2.png)
+
+ Các bước sau liên quan đến compute node:
+
+ 1. Interface của máy ảo(1) chuyển tiếp gói tin đến port của máy ảo(2) trên security group bridge thông qua veth pair.
+ 2. Các rule của security group(3) trên security group bridge xử lý việc liên quan đến tường lửa và theo dõi kết nối cho gói tin.
+ 3. Gói tin được chuyển từ Linux Bridge sang OVS Integration Bridge (thường là int-br-provider) thông qua veth pair.
+ 4. OVS Integration bridge thêm một VLAN tag nội bộ cho gói tin.
+ 5. OVS Integration bridge đổi Vlan ID nội bộ thành một tunnel ID nội bộ.
+ 6. Patch port(6) của OVS Integration bridge chuyển tiếp gói tin đến patch port(7) cảu OVS Tunnel bridge.
+ 7. OVS Tunnel bridge(8) gói gói tin với VNI 101.
+ 8. Interface vật lý(9) dùng cho mạng overlay chuyển tiếp gói tin đến network node thông qua mạng overlay(10).
+
+ Các bước sau liên quan đến Network node:
+
+ 1. Interface vật lý(11) dùng cho mạng overlay nhận và chuyển tiếp gói tin đến OVS Tunnel Bridge(12).
+ 2. OVS Tunnel Bridge gỡ gói tin để biết VNI của gói tin và thêm một Tunnel ID nội bộ cho nó.
+ 3. OVS Tunnel Bridge đổi tunnel ID nội bộ thành Vlan ID nội bộ.
+ 4. Patch port(13) của OVS Tunnel Bridge chuyển tiếp gói tin đến patch port(14) của OVS Integration bridge.
+ 5. Port của OVS Integration bridge(15) sử dụng cho mạng selfservice xóa Vlan tag nội bộ và chuyển tiếp gói tin đến interface mạng self-service trên Router namespace.
+ 6. Router chuyển tiếp gói tin đến port cho mạng Provider(18) trên OVS Integration bridge.
+ 7. OVS Integration bridge thêm Vlan tag nội bộ vào gói tin.
+ 8. Patch port int-br-provider(19) của OVS Integration bridge chuyển tiếp gói tin cho patch port phy-br-provider(20) của OVS Provider Bridge.
+ 9. OVS Provider bridge đổi Vlan tag nội bộ thành Vlan 101 tag của hạ tầng mạng vật lý.
+ 10. Port mạng(21) của OVS Provider bridge chuyển tiếp gói tin đến interface vật lý(22) của mạng provider.
+ 11. Interface vật lý chuyển tiếp gói tin đến hạ tầng mạng vật lý.(23) 
+
+### 2.1.2 Kịch bản North-South 2: Máy ảo với địa chỉ floating IPv4.
+  
+ ![alt text](image/self-service-network3.png)
+
+ Khi máy ảo sử dụng địa chỉ floating IP, network node sẽ thực hiện SNAT cho kết nối từ máy ảo ra ngoài và DNAT cho các kết nối từ ngoài vào máy ảo thông quan địa chỉ floating.
+
+ Trường hợp gói tin được gửi từ máy ảo ra ngoài sẽ giống với kịch bản North-south 1, chỉ khác là khi SNAT thì router sẽ sửa địa chỉ nguồn của gói tin thành địa chỉ floating IP của máy ảo chứ không sử dụng địa chỉ mạng provider của router.
+ 
+ Trường hợp này là gói tin sẽ được gửi từ một máy ở mạng ngoài đến máy ảo.
+ Các bước liên quan network node:
+
+ 1. Từ mạng ngoài (1) gửi packet vào provider physical interface (2)
+ 2. Từ card mạng vật lý chuyển tiếp packet đến OVS provider bridge(3).
+ 3. OVS Provider bridge đổi VLAN 101 tag của mạng provider và thay bằng VLAN ID nội bộ.
+ 4. OVS provider bridge patch port(4) sẽ forward packet sang OVS integration bridge patch port(5)
+ 5. OVS integration bridge provider-network port(6) sẽ bỏ VLAN tag nội bộ và chuyển gói tin đến router namepsace(7). Router sẽ thực hiện DNAT để đổi địa chỉ Ip đích của gói tin là floating IP thành địa chỉ Ip của máy ảo và gửi gói tin đến gateway mạng self-service thông qua port mạng self-service(8) trên router.
+ 6. Router chuyển tiếp các gói tin sang OVS integration bridge (9)
+ 7. Tại OVS intergration bridge sẽ thêm các VLAN ID nội bộ, sau đó sẽ tìm Tunnel ID tương ứng
+ 8. OVS intergration bridge ( 10 ) chuyển các packet tới OVS tunnel bridge ( 11 )
+ 9. OVS tunnel bridge (12) gói các gói tin với VNI 101 và gửi nó đến physical interface.
+ 10. Physical interface sẽ cho phép các overlay network ( 13 ) gửi các packet đến compute node qua mạng overlay(14)
+
+ Trên Compute Node :
+
+ 1. Physical interface ( 15 ) sẽ chuyển tiếp các gói tin đến OVS tunnel bridge(16).
+ 2. OVS tunnel bridge gỡ đóng gói VNI và xác định Tunnel ID nội bộ thích hợp.
+ 3. OVS tunnel bridge đổi tunnel ID nội bộ với VLan tag nội bộ.
+ 4. OVS tunnel bridge patch-int port ( 17 ) sẽ chuyển các packet sang OVS ingrateion bridge patch-tun port(18)
+ 5. OVS integration bridge loại bỏ VLAN tag nội bộ.
+ 6. OVS integration bridge (19) gửi gói tin đến Security group bridge(20) thông qua một đường veth pair.
+ 7. Securtiy group sẽ thực hiện filtering ( 21 )
+ 8. Port của máy ảo trên security bridge(22) sẽ chuyển tiếp goi tin đến interface của máy ảo(23). 
+
+### 2.1.3 Kịch bản East-west 1: Các máy ảo cùng mạng
+ 
+ ![alt text](image/self-service-network4.png)
+
+ Trên Compute 1 :
+
+  1. instance interface (1) forward các packet tới security group trên (Linux Bridge) (2) thông qua veth pair
+  2. securtity group (3) đảm nhiện filter tại đây
+  3. Linux Bridge port(4) forward packet tới OVS integration (5)nhờ veth pair
+  4. OVS ingration bridge thêm VLAN ID vào packet
+  5. OVS integration bridge thay VLAN ID bằng Tunnel ID
+  6. OVS integration bridge patch port (6) forward packet tới OVS Tunnel bridge patch port (7)
+  7. OVS tunnel bridge (8) gắn VNI vào packet
+  8. Underlying physical interface (9) cho phép overlay network (10) chuyển packet đến compute2
+
+ Trên Compute 2
+
+  1. Underlying physical interface (11) cho phép overlay networking (12) forward tới OVS bridge tunnel
+  2. OVS tunnel bridge gỡ đóng gói VNI và xác định Tunnel ID
+  3. OVS tunnel bridge thay đổi Tunnel ID bằng VLAN ID tương ứng.
+  4.  OVS tunnel bridge patch port (13) forward packet tới OVS integratation bridge patch tun port (14)
+  5. OVS integration bridge bỏ VLAN (15) forward packet đến Linux bridge veth port (16)
+  6. Security Group đảm nhiệm filter packet (17)
+  7. Linux bridge veth port (18) forward packet đến instance interface (19)
+
+### 2.1.4 Kịch bản East-west 2: Hai máy ảo khác mạng 
+ 
+ ![alt text](image/self-service-network5.png)
+
+ Trên Compute Node :
+
+ 1. Instance interface (1) forward packet đến Linux Bridge port (2) thông qua veth pair
+ 2. Security group (3) sẽ đảm nhiệm filter các packet
+ 3. Linux bridge port (4) sẽ forward packet đến OVS integration (5) thông qua veth pair
+ 4. OVS integration bridge sẽ thêm VLAN ID vào các packet
+ 5. OVS integration bridge thay đổi các VLAN ID thành Tunnel ID
+ 6. OVS integration bridge patch-tun (6) forward packet tới OVS tunnel bridge (7) patch-int
+ 7. OVS tunnel bridge (8) gán VNI vào các packet
+ 8. Underlying physical interface (9) sẽ cho phép overlay network gửi các packet đến network node (10)
+
+ Trên Network Node
+
+ 1. Underlying physical interface (11) cho phép overlay network forward packet tới OVS tunnel bridge (12)
+ 2. OVS tunnel bridge loại bỏ VNI và thêm tag Tunnel ID cho packet
+ 3. OVS tunnel bridge loại bỏ tag Tunnel ID thay thế bằng VLAN ID
+ 4. OVS tunnel bridge patch port (13) forward packet tới OVS integration bridge patch-tun (14)
+ 5. OVS intergation bridge (15) xóa bỏ VLAN ID các packet và forward lên interface của self-service router (15)
+ 6. Router forward packet sang next-hop , gateway của mạng thứ 2 thông qua router interface(17)
+ 7. Router forward packet đến OVS integration bridge port self-service 
+ 8. OVS integration bridge patch-tun (19) forward packet sang OVS tunnel bridge patch-ini  patch port (20)
+ 9. OVS tunnel bridge (21) tag VNI cho các packet
+ 10. Underlying physical interface  (22) sẽ cho phép overlay network (23) forward packet về compute node
+
+ Trên Compute Node
+
+ 1. Underlying physical interface (24) cho phép overlay network forward packet (25) tới các OVS Tunnel Bridge
+ 2. OVS Tunnel Bridge gở bỏ VNI và tag Tunnel ID
+ 3. OVS Tunnel Bridge thay thế Tunnel ID thay thế bằng VLAN ID
+ 4. OVS Tunnel Bridge port (26) forward packet tới OVS integration bridge sử dụng patch port (27)
+ 5. OVS integration sẽ remove VLAN trên các packet
+ 6. OVS integration bridge port (28) forward packet tới tới Linux Bridge (29) sử dụng veth pair
+ 7. Security group (30) sẽ filer các packet
+ 8. Linux Bridge (31) sẽ forward packet tới các instance interface (32) sử dụng veth pair
+
