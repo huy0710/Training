@@ -6,6 +6,8 @@
 
  - Floating IP không được tự động gán mà chính người quản trị mới có quyền gán IP Floating
 
+ - Khi cấp phát 1 số lượng IP floating cho 1 project thì có thể dùng một số lượng IP đó để gắn cho máy ảo instance 
+
   ![alt text](image/IP_floating.png)
 
 ## 2. DNAT
@@ -20,5 +22,34 @@
 
  - DNAT sẽ thay đổi địa chỉ đích trong phần tiêu đề IP của gói tin, và cũng có thể thay đổi cổng đích trong tiêu đề TCP/UDP. DNAT thường được dùng để chuyển hướng các gói tin đến IP/cổng công cộng sang IP/cổng riêng trong mạng nội bộ.
 
+* Trong một node controller, một node compute và 1 node network node có bao nhiêu  OVS bridge và chức năng của từng bridge
+
+  ![alt text](image/deploy-ovs-selfservice-overview.png)
+
+ - Như ở trên hình này node controller không có ovs bridge, card mạng của nó được kết nối trực tiếp với hạ tầng mạng vật lý để quản lý các dịch vụ keystone, glance điều phối hoạt động của cụm openstack
+
+ - Với network node thì có 3 OVS bridge: br-int, br-tun, và br-ex
+
+ - Với compute node  thì có 3 OVS bridge: br-int, br-tun, và br-ex
+  
+   + br-int: với br-int được sử dụng để kết nối các instance ở trong cùng một node và cùng dải mạng với nhau, dùng để chuyển tiếp gói tin đến br-tun hay br-ex để đi ra ngoài mạng overlay hay external network
+
+   + br-tun: Dùng để đưa gói tin ra mạng overlay 
+
+   + br-ex: Dùng để đưa gói tin ra mạng external 
+
+* Phân tích tài nguyên được-mất của việc dùng SNAT (Router) và DNAT (Floating IP)
+
+ - Việc sử dụng SNAT:
+
+   + Lợi ích: Việc sử dụng SNAT khá đơn giản chỉ cần có sử dụng một dải private và gắn nó qua router ảo của openstack, sử dụng SNAT tích kiệm địa chỉ IP public, Độ bảo mật cao hơn vì VM không trực tiếp kết nối ra ngoài internet 
+
+   + Hạn chế: Việc sử dụng SNAT không thể gửi gói tin từ chiều internet đi vào VM ảo, nếu router bị lỗi thì sẽ ảnh hưởng đến lưu lượng gói tin 
+
+ - Việc sử dụng DNAT:
+
+   + Lợi ích: cho phép truy cập gói tin từ internet đi vào VM và ngược lại, gói tin không cần đi qua trực tiếp router nên giảm lưu lượng cho router
+
+   + Hạn chế: Việc sử dụng DNAT thì sẽ tốn 1 địa chỉ IP public vì vậy cần phải thực hiện quản lý địa chỉ IP, việc bảo mật VM là thấp hơn vì khi đó VM được gán 1 địa chỉ IP public rất dễ bị tấn công 
 
 
