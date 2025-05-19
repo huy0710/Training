@@ -1,0 +1,7 @@
+# Nghiên cứu về OpenVswitch
+
+ - Open vSwitch (OVS) là là một multilayer switch dưới dạng phần mềm được cấp phép theo giấy phép mã nguồn mở Apache 2.0. Mục tiêu của OVS là xây dựng một nền tảng switch chất lượng cao trong công nghiệp hỗ trợ các giao diện quản lý tiêu chuẩn vàcác chức năng truyền tải có thể điều khiển bằng lập trình.
+
+ - OVS được thiết kế sao cho phù hợp để hoạt động như một switch ảo trong môi trường Virtual Machine (VM). Ngoài việc trực quan hóa các giao diện quản lý và các lớp mạng ảo, OVS còn tương thích với nhiều phiên bản của máy chủ vật lý, công nghệ ảo hóanhư Linux-based, Xen/XenServer, KVM và VirtualBox.
+  
+  ![alt text](../image/OVS.webp)
