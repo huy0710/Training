@@ -89,7 +89,8 @@ Open vSwitch thường được sử dụng để kết nối các VMs/container
 
     + Flow table: định nghĩa cách xử lý đối với mỗi nhóm gói tin bằng luật: Gói tin thỏa mãn điều kiện X thì được xử lý theo cách Y. 
 
-    + Packet processing: Là quá trình thực hiện chuyển tiếp gói tin theo định nghĩa trong bảng Flow table
+    + Packet processing: Là quá trình thực hiện chuyển tiếp gói tin theo định nghĩa trong bảng Flow table, Nếu không tìm được flow phù 
+      hợp gói tin được chuyển lên cho Controller xử lý tiếp.
 
     + Switch giao tiếp với controller nhờ tầng API theo giao thức Openflow.
 
