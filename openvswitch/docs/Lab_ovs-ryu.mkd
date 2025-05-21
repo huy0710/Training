@@ -1,0 +1,45 @@
+# Thực hành kết nối ovs với ryu
+
+ - Để thực hiện được bài lab này thì trước hết thực hiện cài ovs và ryu 
+  
+  [Installation Guide for Ryu](https://osrg.github.io/ryu-book/en/html/installation_guide.html)
+
+ - Mô hình thực hiện là tạo ra một topo network với 1 con switch 1 controller ryu và 3 host h1, h2, h3 
+
+ - Thực hiện tạo ra topo:
+
+   ```
+   mn --topo single,3 --mac --switch ovsk --controller remote
+   ```
+
+    ![alt text](../image/lab.png)
+
+   Thực hiện tạo ra 1 topo mạng với  1 con switch 1 controller và 3 host h1, h2, h3 và thực hiện kiểm tra lại
+
+
+ - Thực hiện show trạng thái của switch 
+
+   ![alt text](../image/lab1.png)
+
+
+ - Thêm giao thức openflow 1.3 cho switch:
+
+   `ovs-vsctl set Bridge s1 protocols=OpenFlow13` 
+
+ - Dùng câu lệnh `ovs-ofctl -O OpenFlow13 dump-flows s1` để kiểm tra flow table trong switch s1 thì chưa thấy 
+
+ - Ở trên controller c0 thực hiện chạy để thực hiện bài lab 
+
+  `ryu-manager --verbose ryu.app.example_switch_13`
+
+ - Thưc hiện kiểm tra flow table trên switch:
+
+  `ovs-ofctl -O openflow13 dump-flows s1` 
+
+  ![alt text](../image/lab2.png)
+
+ - Thực hiện ping đến tất các các host và kiểm tra lại bảng flow table
+
+  ![alt text](../image/lab3.png)
+
+
