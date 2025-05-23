@@ -1,0 +1,43 @@
+# Nghiên cứu giám sát OVS
+
+## 1.Tìm hiểu các công cụ giám sát ovs
+
+### 1.1 Sflow 
+
+ - là một giao thức được tạo bởi InMon Corporation để giám sát lưu lượng mạng. sFlow không thu thập tất cả các gói tin, mà chỉ lấy mẫu một phần (sampling) – ví dụ: mỗi 1/1000 gói tin. Điều này giúp giảm tải tài nguyên trên switch/router so với NetFlow, vốn cố gắng ghi lại mọi kết nối (flow). Thay vì chỉ theo dõi gói tin từ lúc đi ra interface đến lúc đi vào interface thì Sflow cho phép theo dõi gói tin trên toàn bộ từ khi ra đến lúc đi qua switch và đi vào interface. Nó sẽ ghi lại thông tin dữ liệu đến từ đâu đi đến đâu, giao thức mạng sử dụng, và thời điểm gói tin đến đích
+
+### 1.2 Netflow
+
+ - Netflow là một giao thức của Cisco cung cấp để thu thập thông tin về dữ liệu được gửi qua mạng, cụ thể NetFlow giám sát lưu lượng mạng ở interface tức là giám sát gói tin khi đi ra và đi vào interface, Netflow thu thập thông tin về IP đích IP nguồn, giao thức sử dụng, số lượng gói tin và số byte được gửi đi và đến đích 
+
+### 1.3 Sự khác nhau của NetFlow và Sflow
+
+ - Có một số điểm khác biệt của NetFlow và Sflow như phương thức lấy mẫu, lượng dữ liệu thu thập được, sự tác động đến hiệu suất mạng...
+
+#### 1.3.1 Phương thức lấy mẫu 
+
+ - Sự khác biệt quan trọng nhất của Sflow và Netflow là phương thức lấy mẫu, trong khi Netflow thu thập dữ liệu và phân tích với mọi gói tin đi ra và đi vào interface còn Sflow lấy lưu lượng mạng trên toàn bộ quá trình chuyển mạch và thu thập dữ liệu ở 1 tập hợp con của gói tin đã truyền đi 
+
+#### 1.3.2 Lượng dữ liệu thu thập và tác động đến hiệu năng mạng và protocol support
+
+ - Netflow thu thập một lượng dữ liệu lớn hơn rất nhiều so với Sflow
+
+ - Netflow thu thập toàn bộ mọi gói tin nên có thể dẫn đến tình trạng tắt nghẽn mạng có thể ảnh hưởng đến việc mất gói tin
+
+ - Netflow được phát triển bởi Cisco nên chủ yếu được sử dụng bởi các thiết bị Cisco còn Sflow có thể được sử dụng rộng rãi hơn như Cisco, Juniper Networks, and Hewlett-Packard
+
+#### 1.3.3 Cấu hình và khả năng tương tích với các công cụ 
+
+ - Với Netflow thì phải cấu hình với mỗi interface mà mình muốn giám sát, có thể tốn thời gian hơn. Còn sflow chỉ cần mình cấu hình trên switch
+ - Netflow là một giao thức do Cisco nên nó thường được sử dụng với các công cụ phân tích luồng của Cisco, còn Sflow thì có thể tương thích nhiều hơn
+
+### 1.4 Trường hợp nào sử dụng Netflow và Sflow
+
+#### 1.4.1 Các trường hợp sử dụng của NetFlow
+ 
+ - NetFlow là một lựa chọn tốt để giám sát lưu lượng trên các mạng tốc độ cao với khối lượng lưu thông lớn. Nó cũng rất hữu ích trong việc phát hiện các mối đe dọa bảo mật và tấn công, xác định các điểm tắc nghẽn, và tối ưu hóa hiệu suất mạng. Ngoài ra, NetFlow cung cấp thông tin chi tiết về các luồng lưu lượng, giúp quản trị viên mạng xử lý sự cố, lập kế hoạch nâng cấp mạng, và tối ưu hóa việc sử dụng băng thông.
+
+#### 1.4.2 Các trường hợp sử dụng của sFlow
+
+ - sFlow là một lựa chọn tốt để giám sát lưu lượng trên các mạng có băng thông hạn chế, chẳng hạn như văn phòng chi nhánh, trung tâm dữ liệu nhỏ, và các địa điểm từ xa. Phương pháp lấy mẫu của sFlow cho phép thu thập dữ liệu từ một phần gói tin, do đó sử dụng ít tài nguyên hơn so với NetFlow. Ngoài ra, sFlow có thể cung cấp cái nhìn tổng quan về các mẫu lưu lượng mạng, giúp quản trị viên phát hiện các bất thường và tối ưu hóa hiệu suất mạng. Nó cũng hữu ích trong việc giám sát an ninh mạng và xác định các mối đe dọa tiềm ẩn.
+
