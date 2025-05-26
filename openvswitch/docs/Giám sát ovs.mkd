@@ -82,17 +82,17 @@
 
  [interface monitoring](https://builders.intel.com/docs/intel-platform-service-assurance-open-vswitch-interface-monitoring.pdf)
 
-     + Number of flows(số lượng flows)
+     +  Number of flows(số lượng flows)
 
      + Gói không match bất kỳ flow nào 
 
      + Gói bị bỏ qua, không xử lý được
 
-     + 	Số lượng mặt nạ flow đang sử dụng
+     + Số lượng mặt nạ flow đang sử dụng
 
      + Số lần khớp flow thành công 
 
- [datapath](https://github.com/digitalocean/openvswitch_exporter)
+   [datapath](https://github.com/digitalocean/openvswitch_exporter)
 
 
  
