@@ -41,3 +41,30 @@
 
  - sFlow là một lựa chọn tốt để giám sát lưu lượng trên các mạng có băng thông hạn chế, chẳng hạn như văn phòng chi nhánh, trung tâm dữ liệu nhỏ, và các địa điểm từ xa. Phương pháp lấy mẫu của sFlow cho phép thu thập dữ liệu từ một phần gói tin, do đó sử dụng ít tài nguyên hơn so với NetFlow. Ngoài ra, sFlow có thể cung cấp cái nhìn tổng quan về các mẫu lưu lượng mạng, giúp quản trị viên phát hiện các bất thường và tối ưu hóa hiệu suất mạng. Nó cũng hữu ích trong việc giám sát an ninh mạng và xác định các mối đe dọa tiềm ẩn.
 
+## 2. Lab với Sflow và NetFlow
+
+ - Thực hiện cài đặt tool Sflow thông qua [sflowtool](https://github.com/sflow/sflowtool)
+
+ - Thực hiện chạy Sflow `sflowtool -p 6343`
+
+  ![alt text](../image/Sflow.png)
+
+ Khi chưa thực hiện đẩy tải. Khi bắt đầu thực hiện đẩy tải từ ns1 sang ns2 thì 
+ ![alt text](../image/Sflow1.png)
+ 
+ ![alt text](../image/Sflow2.png)
+
+ ![alt text](../image/Sflow3.png)
+
+
+ - Khi thực hiện lab với NetFlow:
+
+  ![alt text](../image/NetFlow.png)
+
+
+
+
+
+
+
+
