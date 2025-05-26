@@ -62,6 +62,42 @@
   ![alt text](../image/NetFlow.png)
 
 
+ - các thông số giám sát giám sát của openstack có những thông số gì quan trọng?
+  
+     + Số lượng gói tin/byte được truyền và nhận
+
+     + Số lỗi sai lệch khung (frame alignment errors)
+
+     + Số lượng gói bị rớt bởi bên nhận (RX) hoặc truyền (TX)
+
+     + Số lượng gói có bị tràn khi nhận (RX overrun)
+
+     + Tổng số lỗi truyền và nhận 
+
+     + Số lỗi CRC 
+
+     + Số lần va chạm (collisions)
+
+     + Theo dõi sự thay đổi của các cổng mạng
+
+ [sflowtool](https://builders.intel.com/docs/intel-platform-service-assurance-open-vswitch-interface-monitoring.pdf)
+
+     + Number of flows(số lượng flows)
+
+     + Gói không match bất kỳ flow nào 
+
+     + Gói bị bỏ qua, không xử lý được
+
+     + 	Số lượng mặt nạ flow đang sử dụng
+
+     + Số lần khớp flow thành công 
+
+ [sflowtool](https://github.com/digitalocean/openvswitch_exporter)
+
+
+ 
+
+
 
 
 
