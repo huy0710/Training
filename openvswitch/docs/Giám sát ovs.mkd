@@ -80,7 +80,7 @@
 
      + Theo dõi sự thay đổi của các cổng mạng
 
- [sflowtool](https://builders.intel.com/docs/intel-platform-service-assurance-open-vswitch-interface-monitoring.pdf)
+ [interface monitoring](https://builders.intel.com/docs/intel-platform-service-assurance-open-vswitch-interface-monitoring.pdf)
 
      + Number of flows(số lượng flows)
 
@@ -92,7 +92,7 @@
 
      + Số lần khớp flow thành công 
 
- [sflowtool](https://github.com/digitalocean/openvswitch_exporter)
+ [datapath](https://github.com/digitalocean/openvswitch_exporter)
 
 
  
