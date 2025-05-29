@@ -95,6 +95,25 @@
    [datapath](https://github.com/digitalocean/openvswitch_exporter)
 
 
+ - Lookups ovs: liên quan đến việc tìm kiếm các flow khi các gói tin được xử lý
+
+     + hit: số lượng gói tin được xử lý thành công thông qua việc tìm kiếm flow
+
+     + misses: số lượng gói tin không tìm thấy bất kì flow nào và được chuyển tiếp lên userspace để xử lý 
+
+     + lost: là số gói đáng lẽ được gửi lên userspace nhưng bị rớt (drop) trước khi đến nơi.
+
+     + Tổng của "hit" và "miss" chính là tổng số gói tin datapath đã xử lý
+
+ - mask ovs: "Mask" là tập hợp các trường mà OVS dùng để so khớp gói tin. Nó giống như "bộ lọc" giúp gom các flow tương đồng lại thành một mega flow → để xử lý gói tin nhanh hơn.
+
+     + hit: cho biết số gói tin được xử lý với mask  
+
+     + "total" thể hiện số lượng mask hiện đang tồn tại trong datapath.
+
+
+
+
  
 
 
